@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#4CAF50">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tabungan dan Belanja</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            background-color: #f5f5f5;
+            padding: 20px;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            margin-bottom: 20px;
+        }
+        
+        .balance {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        
+        .status-switch {
+            display: flex;
+            align-items: center;
+            margin: 15px 0;
+        }
+        
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 30px;
+            margin-left: 10px;
+        }
+        
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+        
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 22px;
+            width: 22px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        
+        input:checked + .slider {
+            background-color: #4CAF50;
+        }
+        
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+        
+        .items-container {
+            margin-top: 20px;
+        }
+        
+        .item {
+            background-color: white;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: relative;
+        }
+        
+        .item-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .item-price {
+            color: #4CAF50;
+        }
+        
+        .item-image {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+        
+        .empty-state {
+            text-align: center;
+            color: #888;
+            margin-top: 30px;
+        }
+        
+        .action-buttons {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .action-button {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        
+        .secondary-buttons {
+            display: none;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal-content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 400px;
+        }
+        
+        .modal-title {
+            margin-bottom: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        .form-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .btn {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .btn-primary {
+            background-color: #4CAF50;
+            color: white;
+        }
+        
+        .btn-secondary {
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        
+        .action-modal {
+            position: absolute;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            z-index: 10;
+            right: 10px;
+            top: 10px;
+            overflow: hidden;
+        }
+        
+        .action-option {
+            padding: 10px 20px;
+            cursor: pointer;
+        }
+        
+        .action-option:hover {
+            background-color: #f5f5f5;
+        }
+        
+        .action-option.delete {
+            color: #f44336;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Halo, Isnan Andani</h1>
+        <div class="balance" id="balance">Rp 0</div>
+    </div>
+    
+    <div class="status-switch">
+        <span id="status-label">Belum Dibeli</span>
+        <label class="switch">
+            <input type="checkbox" id="status-toggle">
+            <span class="slider"></span>
+        </label>
+    </div>
+    
+    <div class="items-container" id="items-container">
+        <div class="empty-state">Belum ada barang</div>
+    </div>
+    
+    <div class="action-buttons">
+        <div class="secondary-buttons" id="secondary-buttons">
+            <button class="action-button" id="money-button">$</button>
+            <button class="action-button" id="item-button">🛒</button>
+        </div>
+        <button class="action-button" id="main-button">+</button>
+    </div>
+    
+    <!-- Money Modal -->
+    <div class="modal" id="money-modal">
+        <div class="modal-content">
+            <h3 class="modal-title">Tambah/Kurang Uang</h3>
+            <div class="form-group">
+                <label for="amount">Jumlah</label>
+                <input type="number" id="amount" placeholder="Masukkan jumlah">
+            </div>
+            <div class="form-actions">
+                <button class="btn btn-secondary" id="cancel-money">Batal</button>
+                <button class="btn btn-primary" id="subtract-money">Kurang</button>
+                <button class="btn btn-primary" id="add-money">Tambah</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Item Modal -->
+    <div class="modal" id="item-modal">
+        <div class="modal-content">
+            <h3 class="modal-title">Tambah Barang</h3>
+            <div class="form-group">
+                <label for="item-name">Nama Barang</label>
+                <input type="text" id="item-name" placeholder="Masukkan nama barang">
+            </div>
+            <div class="form-group">
+                <label for="item-price">Harga Barang</label>
+                <input type="number" id="item-price" placeholder="Masukkan harga">
+            </div>
+            <div class="form-group">
+                <label for="item-image">Gambar Barang</label>
+                <input type="file" id="item-image" accept="image/*">
+            </div>
+            <div class="form-actions">
+                <button class="btn btn-secondary" id="cancel-item">Batal</button>
+                <button class="btn btn-primary" id="add-item">Tambah</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Initialize database
+        if (!localStorage.getItem('balance')) {
+            localStorage.setItem('balance', '0');
+        }
+        
+        if (!localStorage.getItem('items')) {
+            localStorage.setItem('items', JSON.stringify([]));
+        }
+        
+        // DOM elements
+        const balanceElement = document.getElementById('balance');
+        const statusLabel = document.getElementById('status-label');
+        const statusToggle = document.getElementById('status-toggle');
+        const itemsContainer = document.getElementById('items-container');
+        const mainButton = document.getElementById('main-button');
+        const secondaryButtons = document.getElementById('secondary-buttons');
+        const moneyButton = document.getElementById('money-button');
+        const itemButton = document.getElementById('item-button');
+        const moneyModal = document.getElementById('money-modal');
+        const itemModal = document.getElementById('item-modal');
+        const amountInput = document.getElementById('amount');
+        const cancelMoney = document.getElementById('cancel-money');
+        const subtractMoney = document.getElementById('subtract-money');
+        const addMoney = document.getElementById('add-money');
+        const itemName = document.getElementById('item-name');
+        const itemPrice = document.getElementById('item-price');
+        const itemImage = document.getElementById('item-image');
+        const cancelItem = document.getElementById('cancel-item');
+        const addItem = document.getElementById('add-item');
+        
+        // State
+        let showCompleted = false;
+        let selectedItemId = null;
+        
+        // Format currency
+        function formatCurrency(amount) {
+            return 'Rp ' + parseInt(amount).toLocaleString('id-ID');
+        }
+        
+        // Update balance display
+        function updateBalance() {
+            const balance = localStorage.getItem('balance');
+            balanceElement.textContent = formatCurrency(balance);
+        }
+        
+        // Render items
+        function renderItems() {
+            const items = JSON.parse(localStorage.getItem('items'));
+            const filteredItems = items.filter(item => item.completed === showCompleted);
+            
+            if (filteredItems.length === 0) {
+                itemsContainer.innerHTML = '<div class="empty-state">Belum ada barang</div>';
+                return;
+            }
+            
+            itemsContainer.innerHTML = '';
+            
+            filteredItems.forEach(item => {
+                const itemElement = document.createElement('div');
+                itemElement.className = 'item';
+                itemElement.dataset.id = item.id;
+                
+                let imageHtml = '';
+                if (item.image) {
+                    imageHtml = `<img src="${item.image}" class="item-image" alt="${item.name}">`;
+                }
+                
+                itemElement.innerHTML = `
+                    <div class="item-name">${item.name}</div>
+                    <div class="item-price">${formatCurrency(item.price)}</div>
+                    ${imageHtml}
+                `;
+                
+                itemElement.addEventListener('click', (e) => {
+                    if (e.target.tagName !== 'BUTTON') {
+                        showActionMenu(item.id, e.clientX, e.clientY);
+                    }
+                });
+                
+                itemsContainer.appendChild(itemElement);
+            });
+        }
+        
+        // Show action menu
+        function showActionMenu(itemId, x, y) {
+            // Remove any existing action menus
+            const existingMenu = document.querySelector('.action-modal');
+            if (existingMenu) {
+                existingMenu.remove();
+            }
+            
+            const menu = document.createElement('div');
+            menu.className = 'action-modal';
+            menu.style.position = 'fixed';
+            menu.style.left = `${x}px`;
+            menu.style.top = `${y}px`;
+            
+            menu.innerHTML = `
+                <div class="action-option complete">Selesai</div>
+                <div class="action-option delete">Hapus</div>
+            `;
+            
+            document.body.appendChild(menu);
+            
+            menu.querySelector('.complete').addEventListener('click', () => {
+                toggleItemStatus(itemId);
+                menu.remove();
+            });
+            
+            menu.querySelector('.delete').addEventListener('click', () => {
+                deleteItem(itemId);
+                menu.remove();
+            });
+            
+            // Close menu when clicking outside
+            setTimeout(() => {
+                document.addEventListener('click', function closeMenu(e) {
+                    if (!menu.contains(e.target)) {
+                        menu.remove();
+                        document.removeEventListener('click', closeMenu);
+                    }
+                });
+            }, 0);
+        }
+        
+        // Toggle item status
+        function toggleItemStatus(itemId) {
+            const items = JSON.parse(localStorage.getItem('items'));
+            const itemIndex = items.findIndex(item => item.id === itemId);
+            
+            if (itemIndex !== -1) {
+                items[itemIndex].completed = !items[itemIndex].completed;
+                localStorage.setItem('items', JSON.stringify(items));
+                renderItems();
+            }
+        }
+        
+        // Delete item
+        function deleteItem(itemId) {
+            const items = JSON.parse(localStorage.getItem('items'));
+            const filteredItems = items.filter(item => item.id !== itemId);
+            localStorage.setItem('items', JSON.stringify(filteredItems));
+            renderItems();
+        }
+        
+        // Update balance in storage
+        function updateBalanceInStorage(amount, isAddition) {
+            const currentBalance = parseInt(localStorage.getItem('balance'));
+            let newBalance;
+            
+            if (isAddition) {
+                newBalance = currentBalance + amount;
+            } else {
+                newBalance = currentBalance - amount;
+                if (newBalance < 0) newBalance = 0;
+            }
+            
+            localStorage.setItem('balance', newBalance.toString());
+            updateBalance();
+        }
+        
+        // Add new item
+        function addNewItem(name, price, image) {
+            const items = JSON.parse(localStorage.getItem('items'));
+            const newItem = {
+                id: Date.now().toString(),
+                name,
+                price,
+                image,
+                completed: false
+            };
+            
+            items.push(newItem);
+            localStorage.setItem('items', JSON.stringify(items));
+            renderItems();
+        }
+        
+        // Event listeners
+        mainButton.addEventListener('click', () => {
+            secondaryButtons.style.display = secondaryButtons.style.display === 'flex' ? 'none' : 'flex';
+        });
+        
+        moneyButton.addEventListener('click', () => {
+            moneyModal.style.display = 'flex';
+            secondaryButtons.style.display = 'none';
+        });
+        
+        itemButton.addEventListener('click', () => {
+            itemModal.style.display = 'flex';
+            secondaryButtons.style.display = 'none';
+        });
+        
+        statusToggle.addEventListener('change', () => {
+            showCompleted = statusToggle.checked;
+            statusLabel.textContent = showCompleted ? 'Sudah Dibeli' : 'Belum Dibeli';
+            renderItems();
+        });
+        
+        cancelMoney.addEventListener('click', () => {
+            moneyModal.style.display = 'none';
+            amountInput.value = '';
+        });
+        
+        subtractMoney.addEventListener('click', () => {
+            const amount = parseInt(amountInput.value) || 0;
+            if (amount > 0) {
+                updateBalanceInStorage(amount, false);
+                moneyModal.style.display = 'none';
+                amountInput.value = '';
+            }
+        });
+        
+        addMoney.addEventListener('click', () => {
+            const amount = parseInt(amountInput.value) || 0;
+            if (amount > 0) {
+                updateBalanceInStorage(amount, true);
+                moneyModal.style.display = 'none';
+                amountInput.value = '';
+            }
+        });
+        
+        cancelItem.addEventListener('click', () => {
+            itemModal.style.display = 'none';
+            itemName.value = '';
+            itemPrice.value = '';
+            itemImage.value = '';
+        });
+        
+        addItem.addEventListener('click', () => {
+            const name = itemName.value.trim();
+            const price = parseInt(itemPrice.value) || 0;
+            
+            if (name && price > 0) {
+                if (itemImage.files.length > 0) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        addNewItem(name, price, e.target.result);
+                        itemModal.style.display = 'none';
+                        itemName.value = '';
+                        itemPrice.value = '';
+                        itemImage.value = '';
+                    };
+                    reader.readAsDataURL(itemImage.files[0]);
+                } else {
+                    addNewItem(name, price, null);
+                    itemModal.style.display = 'none';
+                    itemName.value = '';
+                    itemPrice.value = '';
+                    itemImage.value = '';
+                }
+            }
+        });
+        
+        // Close modals when clicking outside
+        window.addEventListener('click', (e) => {
+            if (e.target === moneyModal) {
+                moneyModal.style.display = 'none';
+                amountInput.value = '';
+            }
+            
+            if (e.target === itemModal) {
+                itemModal.style.display = 'none';
+                itemName.value = '';
+                itemPrice.value = '';
+                itemImage.value = '';
+            }
+        });
+        
+        // Initialize
+        updateBalance();
+        renderItems();
+    </script>
+    <script>
+    // PWA Installation Prompt
+    let deferredPrompt;
+    const installBtn = document.createElement("button");
+    installBtn.textContent = "Install";
+    installBtn.style.position = "fixed";
+    installBtn.style.bottom = "20px";
+    installBtn.style.right = "20px";
+    installBtn.style.zIndex = "9999";
+    installBtn.style.display = "none";
+    document.body.appendChild(installBtn);
+    
+    window.addEventListener("beforeinstallprompt", (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        installBtn.style.display = "block";
+    });
+    installBtn.addEventListener("click", async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === "accepted") installBtn.style.display = "none";
+    deferredPrompt = null;
+});
+
+// Register Service Worker
+if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+        navigator.serviceWorker.register("sw.js");
+    });
+}
+</script>
+</body>
+</html>
